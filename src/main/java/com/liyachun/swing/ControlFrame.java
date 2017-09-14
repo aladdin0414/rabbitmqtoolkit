@@ -5,6 +5,8 @@ import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +45,7 @@ public class ControlFrame extends JFrame implements ActionListener{
 	JPasswordField tfPsw;
 	JTextArea jtMessage;
 	JButton connectButton,closeButton,newChannelButton,clearLogButton,publishButton;
+	Persistence persistence = new Persistence();
 	
 	public ControlFrame() {
 		super("rabbitmqtoolkit");
@@ -50,6 +53,7 @@ public class ControlFrame extends JFrame implements ActionListener{
 		Dimension scrSize= Toolkit.getDefaultToolkit().getScreenSize(); 
 		setLocation((scrSize.width-DEFAULT_WIDTH)/2,(scrSize.height-DEFAULT_HEIGHT)/2); 
 		
+		DataModel storeData = persistence.getDataModel();
 		
 		int lbX = 20;
 		int lbWidth = 110;
@@ -64,9 +68,10 @@ public class ControlFrame extends JFrame implements ActionListener{
 		lbHost.setSize(lbWidth, lbHeight);
 		lbHost.setLocation(lbX, 20);
 		centerPanel.add(lbHost);
-		tfHost = new JTextField();
+		tfHost = new JTextField(storeData.getHost());
 		tfHost.setSize(tfWidth, tfHeight);
 		tfHost.setLocation(tfX, 20);
+		
 		centerPanel.add(tfHost);
 		
 		
@@ -75,7 +80,7 @@ public class ControlFrame extends JFrame implements ActionListener{
 		lbUser.setLocation(lbX, calY(lbHost));
 		centerPanel.add(lbUser);
 		
-		tfUser = new JTextField();
+		tfUser = new JTextField(storeData.getUser());
 		tfUser.setSize(tfWidth, tfHeight);
 		tfUser.setLocation(tfX, calY(tfHost));
 		centerPanel.add(tfUser);
@@ -147,6 +152,17 @@ public class ControlFrame extends JFrame implements ActionListener{
 		southPanel.add(clearLogButton);
 		
 		add(southPanel,BorderLayout.SOUTH);
+		
+		addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				DataModel dm = new DataModel();
+				dm.setHost(tfHost.getText());
+				dm.setUser(tfUser.getText());
+				persistence.save(dm);
+				System.exit(0);  
+			}
+		});
 	}
 	
 	int calY(JComponent lab) {
