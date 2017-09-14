@@ -12,6 +12,6 @@ Run the following command to execute
 
 `'java -jar rabbitmqtoolkit.jar'`
 
-This is the latest release to download
+This is the latest release version to run
 
 [rabbitmqtoolkit.jar](rabbitmqtoolkit.jar)
