@@ -10,7 +10,9 @@ this is a rabbitmq j2se tookkit for test connection, publish message and consume
 
 Run the following command to execute 
 
-`'java -jar rabbitmqtoolkit.jar'`
+```
+java -jar rabbitmqtoolkit.jar
+```
 
 This is the latest release version to run
 
