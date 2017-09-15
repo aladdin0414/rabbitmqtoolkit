@@ -12,6 +12,8 @@ public class DataModel {
 	String host;
 	
 	String user;
+	
+	String queuename;
 
 	public String getHost() {
 		return host;
@@ -27,6 +29,14 @@ public class DataModel {
 
 	public void setUser(String user) {
 		this.user = user;
+	}
+
+	public String getQueuename() {
+		return queuename;
+	}
+
+	public void setQueuename(String queuename) {
+		this.queuename = queuename;
 	}
 	
 }

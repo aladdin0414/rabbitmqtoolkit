@@ -10,6 +10,7 @@ import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -44,7 +45,7 @@ public class ControlFrame extends JFrame implements ActionListener{
 	JTextField tfHost,tfUser,tfQueueName,tfMessage;
 	JPasswordField tfPsw;
 	JTextArea jtMessage;
-	JButton connectButton,closeButton,newChannelButton,clearLogButton,publishButton;
+	JButton connectButton,closeButton,newChannelButton,clearLogButton,publishButton,queueExistButton;
 	Persistence persistence = new Persistence();
 	
 	public ControlFrame() {
@@ -100,7 +101,7 @@ public class ControlFrame extends JFrame implements ActionListener{
 		lbQueueName.setLocation(lbX, calY(lbPsw));
 		centerPanel.add(lbQueueName);
 		
-		tfQueueName = new JTextField();
+		tfQueueName = new JTextField(storeData.getQueuename());
 		tfQueueName.setSize(tfWidth, tfHeight);
 		tfQueueName.setLocation(tfX, calY(tfPsw));
 		centerPanel.add(tfQueueName);
@@ -147,6 +148,10 @@ public class ControlFrame extends JFrame implements ActionListener{
 		publishButton.addActionListener(this);
 		southPanel.add(publishButton);
 		
+		queueExistButton = new JButton("queue check");
+		queueExistButton.addActionListener(this);
+		southPanel.add(queueExistButton);
+		
 		clearLogButton = new JButton("clear logs");
 		clearLogButton.addActionListener(this);
 		southPanel.add(clearLogButton);
@@ -159,6 +164,7 @@ public class ControlFrame extends JFrame implements ActionListener{
 				DataModel dm = new DataModel();
 				dm.setHost(tfHost.getText());
 				dm.setUser(tfUser.getText());
+				dm.setQueuename(tfQueueName.getText());
 				persistence.save(dm);
 				System.exit(0);  
 			}
@@ -188,7 +194,7 @@ public class ControlFrame extends JFrame implements ActionListener{
 			factory.setPassword(new String(tfPsw.getPassword()));
 			factory.setPort(AMQP.PROTOCOL.PORT);
 			try {
-				if(connection==null||!connection.isOpen()) {
+				if(!isConnectionOpen()) {
 					connection = factory.newConnection();
 					log("connect success");
 				}
@@ -199,7 +205,7 @@ public class ControlFrame extends JFrame implements ActionListener{
 		}
 		else if(e.getSource() == closeButton) {
 			try {
-				if(connection!=null&&connection.isOpen()) {
+				if(isConnectionOpen()) {
 					channelList.clear();
 					connection.close();
 					log("close success");
@@ -212,7 +218,7 @@ public class ControlFrame extends JFrame implements ActionListener{
 		}
 		else if(e.getSource() == newChannelButton) {
 			try {
-				if(connection !=null && connection.isOpen()) {
+				if(isConnectionOpen()) {
 					channelList.add(connection.createChannel());
 					log("add a new channel, now "+channelList.size()+ " channels");
 				}
@@ -227,15 +233,67 @@ public class ControlFrame extends JFrame implements ActionListener{
 		}
 		else if(e.getSource() == publishButton) {
 			try {
-				Channel channel = connection.createChannel();
-				channel.basicPublish("", tfQueueName.getText(), MessageProperties.PERSISTENT_TEXT_PLAIN, tfMessage.getText().getBytes());
-				channel.close();
-				log("publish success");
+				if(isConnectionOpen()) {
+					Channel channel = connection.createChannel();
+					channel.queueDeclare(tfQueueName.getText(), true, false, false, null);
+					channel.basicPublish("", tfQueueName.getText(), MessageProperties.PERSISTENT_TEXT_PLAIN, tfMessage.getText().getBytes());
+					channel.close();
+					log("publish success");
+				}
 			} catch (Exception ex) {
 				ex.printStackTrace();
 				log("publish failure");
 			}
 		}
+		else if(e.getSource() == queueExistButton) {
+			if(isConnectionOpen()) {
+				String queueName = tfQueueName.getText();
+				boolean exist = exist(queueName);
+				log(queueName+":"+exist);
+			}
+		}
+	}
+	
+	public boolean isConnectionOpen() {
+		if(connection!=null&&connection.isOpen()) {
+			return true;
+		}
+		else {
+			if(connection == null) {
+				log("connection is null");
+			}
+			else if(!connection.isOpen()) {
+				log("connection is not open");
+			}
+			return false;
+		}
+	}
+	
+	/**
+	 * check queue is exist or not
+	 * @param queueName
+	 * @return
+	 */
+	public boolean exist(String queueName) {
+		Channel channel = null;
+		boolean exist = false;
+		try {
+			channel = connection.createChannel();
+			channel.queueDeclarePassive(queueName);
+			exist = true;
+		} catch (Exception e) {
+			
+		}
+		if(channel!=null && channel.isOpen()) {
+			try {
+				channel.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (TimeoutException e) {
+				e.printStackTrace();
+			}
+		}
+		return exist;
 	}
 	
 	StringBuilder messages = new StringBuilder();
