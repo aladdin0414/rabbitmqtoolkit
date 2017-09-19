@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.liyachun.j2se.util.LogUtil;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AMQP.Queue;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -96,7 +97,7 @@ public class ControlFrame extends JFrame implements ActionListener{
 		tfPsw.setLocation(tfX, calY(tfUser));
 		centerPanel.add(tfPsw);
 		
-		JLabel lbQueueName = new JLabel("queue name:",JLabel.CENTER);
+		JLabel lbQueueName = new JLabel("pub queue:",JLabel.CENTER);
 		lbQueueName.setSize(lbWidth, lbHeight);
 		lbQueueName.setLocation(lbX, calY(lbPsw));
 		centerPanel.add(lbQueueName);
@@ -235,7 +236,10 @@ public class ControlFrame extends JFrame implements ActionListener{
 			try {
 				if(isConnectionOpen()) {
 					Channel channel = connection.createChannel();
-					channel.queueDeclare(tfQueueName.getText(), true, false, false, null);
+//					if(!isQueueExist(tfQueueName.getText())) {
+//						log("queue is not exist");
+//						return;
+//					}
 					channel.basicPublish("", tfQueueName.getText(), MessageProperties.PERSISTENT_TEXT_PLAIN, tfMessage.getText().getBytes());
 					channel.close();
 					log("publish success");
@@ -248,7 +252,7 @@ public class ControlFrame extends JFrame implements ActionListener{
 		else if(e.getSource() == queueExistButton) {
 			if(isConnectionOpen()) {
 				String queueName = tfQueueName.getText();
-				boolean exist = exist(queueName);
+				boolean exist = isQueueExist(queueName);
 				log(queueName+":"+exist);
 			}
 		}
@@ -274,7 +278,7 @@ public class ControlFrame extends JFrame implements ActionListener{
 	 * @param queueName
 	 * @return
 	 */
-	public boolean exist(String queueName) {
+	public boolean isQueueExist(String queueName) {
 		Channel channel = null;
 		boolean exist = false;
 		try {
